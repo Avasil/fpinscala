@@ -1,5 +1,7 @@
 /*
-Scala provides shorter syntax when the first action of a function literal is to match on an expression.  The function passed to `unfold` in `fibsViaUnfold` is equivalent to `p => p match { case (f0,f1) => ... }`, but we avoid having to choose a name for `p`, only to pattern match on it.
+Scala provides shorter syntax when the first action of a function literal is to match on an expression.
+The function passed to `unfold` in `fibsViaUnfold` is equivalent to `p => p match { case (f0,f1) => ... }`,
+but we avoid having to choose a name for `p`, only to pattern match on it.
 */
 val fibsViaUnfold = 
   unfold((0,1)) { case (f0,f1) => Some((f0,(f1,f0+f1))) }
