@@ -1,13 +1,13 @@
 package fpinscala
 package applicative
 
-import monads.Functor
-import state._
-import State._
-import StateUtil._ // defined at bottom of this file
-import monoids._
-import language.higherKinds
-import language.implicitConversions
+import fpinscala.monads.Functor
+import fpinscala.state._
+//import State._
+import fpinscala.applicative.StateUtil._
+import fpinscala.monoids._
+
+import scala.language.{higherKinds, implicitConversions}
 
 trait Applicative[F[_]] extends Functor[F] {
 
