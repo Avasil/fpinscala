@@ -6,7 +6,9 @@ def map2[A,B,C](a: Par[A], b: Par[B])(f: (A,B) => C): Par[C] =
   }
 
 /*
-Note: this implementation will not prevent repeated evaluation if multiple threads call `get` in parallel. We could prevent this using synchronization, but it isn't needed for our purposes here (also, repeated evaluation of pure values won't affect results).
+Note: this implementation will not prevent repeated evaluation if multiple threads call `get` in parallel.
+We could prevent this using synchronization, but it isn't needed for our purposes here
+(also, repeated evaluation of pure values won't affect results).
 */
 case class Map2Future[A,B,C](a: Future[A], b: Future[B],
                              f: (A,B) => C) extends Future[C] {
