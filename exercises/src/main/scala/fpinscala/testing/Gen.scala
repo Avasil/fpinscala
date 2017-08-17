@@ -168,6 +168,11 @@ object Gen {
   def unit[A](a: => A): Gen[A] =
     Gen(State(RNG.unit(a)))
 
+  def stringN(n: Int): Gen[String] =
+    listOfN(n, choose(0,127)).map(_.map(_.toChar).mkString)
+
+  val string: SGen[String] = SGen(stringN)
+
   def boolean: Gen[Boolean] =
     Gen(State(RNG.boolean))
 
