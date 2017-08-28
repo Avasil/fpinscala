@@ -23,32 +23,34 @@ object JSON {
     //    implicit def tok(s: String) = token(P.string(s))
 
 
-    val spaces = char(' ').many.slice
+    //    val spaces = char(' ').many.slice
+    //
+    //    def literal: Parser[JSON] = doubleString.map(JNumber) |
+    //      booleanParser.map(JBool) |
+    //      nullString.map(_ => JNull)
+    //
+    //    // to co moze byc po :
+    //    def value: Parser[JSON] = literal | obj | array
+    //
+    //    // to co przed :
+    ////    def key: Parser[(String, JSON)] = literal ** (":" *> value)
+    //
+    //    def array: Parser[JArray] =
+    //      value separate "," surround('[', ']') map (a => JArray(a.toIndexedSeq))
+    //
+    ////    def obj: Parser[JObject] =
+    ////      key separate "," surround('{', '}') map (a => JObject(a.toMap))
+    //
+    //    root(whitespace *> (obj | array))
+    //  }
 
-    def literal: Parser[JSON] = doubleString.map(JNumber) |
-      booleanParser.map(JBool) |
-      nullString.map(_ => JNull)
+    //  def nullParser[Err, Parser[+_]](P: Parsers[Err, Parser]): Parser[JNull] = {
+    //
+    //  }
 
-    // to co moze byc po :
-    def value: Parser[JSON] = literal | obj | array
-
-    // to co przed :
-    def key: Parser[(String, JSON)] = literal ** (":" *> value)
-
-    def array: Parser[JArray] =
-      value separate "," surround('[', ']') map (a => JArray(a.toIndexedSeq))
-
-    def obj: Parser[JObject] =
-      key separate "," surround('{', '}') map (a => JObject(a.toMap))
-
-    root(whitespace *> (obj | array))
-  }
-
-  //  def nullParser[Err, Parser[+_]](P: Parsers[Err, Parser]): Parser[JNull] = {
-  //
-  //  }
-
-  def numberParser[Err, Parser[+ _]](P: Parsers[Err, Parser]): Parser[JNumber] = {
-
+    //  def numberParser[Err, Parser[+ _]](P: Parsers[Err, Parser]): Parser[JNumber] = {
+    //
+    //  }
+???
   }
 }

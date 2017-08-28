@@ -1,15 +1,13 @@
 package fpinscala.parsing
 
-import fpinscala.testing.{Gen, Prop, SGen}
+import fpinscala.testing.{Gen, Prop}
 
 import scala.language.{higherKinds, implicitConversions}
 import scala.util.matching.Regex
 
 
-
 trait Parsers[Parser[+ _]] {
   self => // so inner classes may call methods of trait
-
 
 
   def or[A](s1: Parser[A], s2: => Parser[A]): Parser[A]
@@ -66,7 +64,7 @@ trait Parsers[Parser[+ _]] {
     } yield (a, b)
 
   def map2[A, B, C](p1: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] =
-    p1 product p2 map (f(_))
+    p1 product p2 map (x => f(x._1, x._2))
 
   def map2ViaFlatMap[A, B, C](p1: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] =
     for {
@@ -177,7 +175,7 @@ trait Parsers[Parser[+ _]] {
 
   object Laws {
 
-    import fpinscala.testing.Prop._
+    import fpinscala.testing.Prop.forAll
 
     def equal[A](p1: Parser[A], p2: Parser[A])(in: Gen[String]): Prop =
       forAll(in)(s => run(p1)(s) == run(p2)(s))
@@ -202,16 +200,17 @@ trait Parsers[Parser[+ _]] {
     }
 
     def productMapLaw[A, B](p1: Parser[A], p2: Parser[B])(f: A => B, g: B => A)(in: Gen[String]): Prop =
-      forAll(in)(s => run(p1.map(f) ** p2.map(g))(s) == run(p1 ** p2 map { case (a, b) => (f(a), f(g)) })(s))
+      forAll(in)(s => run(p1.map(f) ** p2.map(g))(s) == run(p1 ** p2 map { case (a, b) => (f(a), g(b)) })(s))
 
-    def labelLaw[A](p: Parser[A], inputs: SGen[String]): Prop =
-      forAll(inputs ** Gen.string) { case (input, msg) =>
-        run(label(msg)(p))(input) match {
-          case Left(e) => errorMessage(e) == msg
-          case _ => true
-        }
-      }
+    //    def labelLaw[A](p: Parser[A], inputs: SGen[String]): Prop =
+    //      forAll(inputs ** Gen.string) { case (input, msg) =>
+    //        run(label(msg)(p))(input) match {
+    //          case Left(e) => errorMessage(e) == msg
+    //          case _ => true
+    //        }
+    //      }
   }
+
 }
 
 object Parsers {

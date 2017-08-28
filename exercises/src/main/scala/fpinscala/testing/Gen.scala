@@ -118,7 +118,7 @@ object Prop {
         println(s"+ OK, proved property.")
     }
 
-  def check(p: => Boolean): Prop = { (_, _, _) =>
+  def check(p: => Boolean): Prop = Prop { (_, _, _) =>
     if (p) Proved else Falsified("()", 0)
   }
 

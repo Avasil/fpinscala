@@ -6,7 +6,7 @@ import fpinscala.parsing._
 import fpinscala.state._
 import fpinscala.testing._
 
-import scala.language.higherKinds
+import scala.language.{higherKinds, reflectiveCalls}
 
 
 trait Functor[F[_]] {
@@ -67,13 +67,60 @@ trait Monad[M[_]] extends Functor[M] {
     compose[Unit, A, B](_ => ma, f)()
   }
 
-  def join[A](mma: M[M[A]]): M[A] = ???
+  // ex. 9
+  //  compose(compose(f, g), h) == compose(f, compose(g, h))
+  //  a => flatMap(compose(f, g)(a))(h) == a => flatMap(f(a))(compose(g,h))
+  // a => flatMap(b => flatMap(f(b))(g)(a))(h) == a => flatMap(f(a))(b => flatMap(g(b))(h))
+  // a => flatMap(flatMap(f(a))(g))(h) == a => flatMap(f(a))(b => flatMap(g(b))(h))
+  // f(a) == x
+  // flatMap(flatMap(x)(g))(h) == flatMap(x)(b => flatMap(g(b))(h))
+
+  // ex. 10
+
+  // compose(f(v), unit)(v) == f(v) <==> v => flatMap(f(v))(unit)(v) == f(v)
+  // compose(unit, f) == f <==> v => flatMap(unit(v))(f) => f(v)
+
+  // ex. 11
+  // identity law for option Monad
+
+  // flatMap(x)(unit) == x
+  // flatMap(Some(v))(Some(_) => flatMap(Some(Some(v)) => Some(v) == x OK
+  // flatMap(None)(unit) == None == x OK
+  //
+  // flatMap(unit(y))(f) == f(y)
+  // flatMap(Some(Some(v))(f) == f(v) == f(y) OK
+  // flatMap(Some(None))(f) == None OK
+
+
+  def join[A](mma: M[M[A]]): M[A] =
+    flatMap(mma)(identity)
 
   // Implement in terms of `join`:
-  def __flatMap[A, B](ma: M[A])(f: A => M[B]): M[B] = ???
+  def __flatMap[A, B](ma: M[A])(f: A => M[B]): M[B] =
+    join(map(ma)(f))
+
+  def __compose[A, B, C](f: A => M[B], g: B => M[C]): A => M[C] =
+    a => join(map(f(a))(g))
+
+  // Ex 11.14
+  //1  flatMap(flatMap(x)(f))(g) == flatMap(x)(a => flatMap(f(a))(g))
+  //2  flatMap(x)(unit) == x
+  //3  flatMap(unit(y))(f) == f(y)
+
+  // 1
+  // join(map(join(map(x)(f))(g)) == join(map(x)(a => join(map(f(a))(g)))
+  // 2
+  // join(map(x)(unit)) == x
+  // join(unit(x)) == x
+  // 3
+  // join(map(unit(y))(f)) == f(y)
+  // join(unit(f(y)) == f(y)
 }
 
-case class Reader[R, A](run: R => A)
+// Ex 11.15
+
+// If we run parallel computation it doesn't matter how we split our input because after "joining" it it will always be
+// the same
 
 object Monad {
   val genMonad = new Monad[Gen] {
@@ -121,6 +168,12 @@ object Monad {
       List.flatMap(ma)(f)
   }
 
+  // TODO: make sure to understand
+
+  // type lambda
+  // (type StateS[A] = State[S, A])#StateS
+  // ~~
+  // (x = {a => f(s,a)}).x
   class StateMonads[S] {
     type StateS[A] = State[S, A]
 
@@ -134,30 +187,51 @@ object Monad {
   }
 
   // or
-  def stateMonad[S] = new Monad[({type f[x] = State[S, x]})#f] {
+  def stateMonad[S] = new Monad[({type StateS[A] = State[S, A]})#StateS] {
     def unit[A](a: => A): State[S, A] = State(s => (a, s))
 
     override def flatMap[A, B](st: State[S, A])(f: A => State[S, B]): State[S, B] =
       st flatMap f
   }
 
+//  val stateM = stateMonad[Int]
+//  val state2 = State.unit[Int, Int](5)
+//  val state3 = State.unit[Int, Double](6.0)
+//  stateM.replicateM(10, state2).run(2)
+//  stateM.map2(state2, state3)((i, d) => i.toDouble + d)
+//  stateM.sequence(scala.List(state2, state2))
 
-  val idMonad: Monad[Id] = ???
+  // ex 11.19
+
+  val idMonad: Monad[Id] = new Monad[Id]{
+    override def unit[A](a: => A) =
+      Id(a)
+
+    override def flatMap[A, B](ma: Id[A])(f: (A) => Id[B]) =
+      ma flatMap f
+  }
 
   def readerMonad[R] = ???
 }
 
 case class Id[A](value: A) {
-  def map[B](f: A => B): Id[B] = ???
+  def map[B](f: A => B): Id[B] =
+    Id(f(value))
 
-  def flatMap[B](f: A => Id[B]): Id[B] = ???
+  def flatMap[B](f: A => Id[B]): Id[B] =
+    f(value)
 }
+
+case class Reader[R, A](run: R => A)
 
 object Reader {
   def readerMonad[R] = new Monad[({type f[x] = Reader[R, x]})#f] {
-    def unit[A](a: => A): Reader[R, A] = ???
 
-    override def flatMap[A, B](st: Reader[R, A])(f: A => Reader[R, B]): Reader[R, B] = ???
+    def unit[A](a: => A): Reader[R, A] =
+      Reader(_ => a)
+
+    override def flatMap[A, B](st: Reader[R, A])(f: A => Reader[R, B]): Reader[R, B] =
+      Reader(r => f(st.run(r)).run(r))
   }
 }
 

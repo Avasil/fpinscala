@@ -1,6 +1,7 @@
 package fpinscala.monoids
 
 import fpinscala.datastructures.Nil
+import fpinscala.monoids.Monoid.{dual, endoMonoid}
 import fpinscala.parallelism.Nonblocking.Par.toParOps
 
 import scala.language.{higherKinds, postfixOps}
@@ -22,7 +23,7 @@ object Monoid {
   def listMonoid[A] = new Monoid[List[A]] {
     def op(a1: List[A], a2: List[A]) = a1 ++ a2
 
-    val zero = Nil
+    val zero = List()
   }
 
   val intAddition: Monoid[Int] = new Monoid[Int] {
@@ -216,22 +217,22 @@ object Monoid {
     }
 
   def bag[A](as: IndexedSeq[A]): Map[A, Int] =
-    foldMapV(as, mapMergeMonoid(intAddition)[A])(elem => Map(elem -> 1))
+    foldMapV(as, mapMergeMonoid[A, Int](intAddition))((elem: A) => Map(elem -> 1))
 }
 
 trait Foldable[F[_]] {
 
-  def foldRight[A, B](as: F[A])(z: B)(f: (A, B) => B): B =
-    ???
+  def foldRight[A,B](as: F[A])(z: B)(f: (A, B) => B): B =
+    foldMap(as)(f.curried)(endoMonoid[B])(z)
 
-  def foldLeft[A, B](as: F[A])(z: B)(f: (B, A) => B): B =
-    ???
+  def foldLeft[A,B](as: F[A])(z: B)(f: (B, A) => B): B =
+    foldMap(as)(a => (b: B) => f(b, a))(dual(endoMonoid[B]))(z)
 
   def foldMap[A, B](as: F[A])(f: A => B)(mb: Monoid[B]): B =
     foldRight(as)(mb.zero)((a, b) => mb.op(f(a), b))
 
   def concatenate[A](as: F[A])(m: Monoid[A]): A =
-    ???
+    foldLeft(as)(m.zero)(m.op)
 
   def toList[A](as: F[A]): List[A] =
     foldRight(as)(List[A]())(_ :: _)
@@ -308,7 +309,9 @@ object OptionFoldable extends Foldable[Option] {
   override def foldLeft[A, B](as: Option[A])(z: B)(f: (B, A) => B) =
     as map f.curried(z) getOrElse z
 
-  override def foldRight[A, B](as: Option[A])(z: B)(f: (A, B) => B) =
-    as map (f(_)) getOrElse z
+  override def foldRight[A, B](as: Option[A])(z: B)(f: (A, B) => B) = as match {
+    case None => z
+    case Some(a) => f(a, z)
+  }
 }
 
